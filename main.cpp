@@ -6,15 +6,19 @@
 #include <filesystem>
 #include <ctime>
 
-static const std::string WELCOME_TITLE  = {
+//--------------------------------------------------------
+//--------------------------------------------------------
+static const std::string start_msg  =
   "  ┌───────────────────────────────────────────────────────────┐\n"
   "  │░░░░░░░░░░░░░░░░░░░░░░░░░░░ Start   ░░░░░░░░░░░░░░░░░░░░░░░│\n"
-  "  └───────────────────────────────────────────────────────────┘\n\n"};
-
-static const std::string FAREWELL_TITLE = {
+  "  └───────────────────────────────────────────────────────────┘\n\n";
+//--------------------------------------------------------
+static const std::string end_msg =
   "  ┌───────────────────────────────────────────────────────────┐\n"
   "  │░░░░░░░░░░░░░░░░░░░░░░░░░░░ End     ░░░░░░░░░░░░░░░░░░░░░░░│\n"
-  "  └───────────────────────────────────────────────────────────┘\n\n"};
+  "  └───────────────────────────────────────────────────────────┘\n\n";
+//--------------------------------------------------------
+//--------------------------------------------------------
 
 namespace fs = std::filesystem;
 
@@ -26,7 +30,7 @@ std::time_t to_time_t(const fs::file_time_type& ftime)
 
   return std::chrono::system_clock::to_time_t(sctp);
 }
-
+//--------------------------------------------------------
 std::string get_latest_log_file()
 {
   namespace fs = std::filesystem;
@@ -62,68 +66,78 @@ std::string get_timestamped_filename(const std::string& filename)
 
   return ss.str();
 }
-
-void rotate_log_file(const std::string& filename) {
-  auto ftime = fs::last_write_time(filename);
-  std::time_t mod_time = to_time_t(ftime);
-  std::tm* tm = std::localtime(&mod_time);
-
+//--------------------------------------------------------
+std::string format_time(const char* format, const std::time_t& t = std::time(nullptr))
+{
   std::stringstream ss;
+  ss << std::put_time(std::localtime(&t), format);
 
-  ss << "chat-" << std::put_time(tm, "%Y%m%d-%H%M%S") << ".log";
+  return ss.str();
+}
+//--------------------------------------------------------
+void rotate_log_file(const std::string& filename)
+{
+  const auto        ftime       = fs::last_write_time(filename);
+  const std::time_t mod_time    = to_time_t(ftime);
+  const auto        pos         = filename.find_last_of('.');
+  std::string       simple_name = (pos == filename.npos) ? filename :
+                                                           filename.substr(0, pos);
+  const std::string format   = simple_name + "-%Y%m%d-%H%M%S.log";
+  const std::string new_name = format_time(simple_name.c_str(), mod_time);
 
-  const std::string new_name = ss.str();
   fs::rename(filename, new_name);
 
   std::cout << "Renamed last log to: " << new_name << std::endl;
 }
-
-
+//--------------------------------------------------------
 static bool should_exit(const std::string& s)  { return s == "exit"; }
-
+//--------------------------------------------------------
+bool is_yes (const std::string& s)
+{
+  return s == "y" || s == "Y" || s == "yes" || s == "YES" || s == "Yes";
+}
+//--------------------------------------------------------
 bool ask_if_new()
 {
   std::string choice;
-  std::cout << "Is this new material?" << std::endl;
+  std::cout << "Is this new material? " << std::endl;
   std::cin  >> choice;
-  return
-    choice == "y"   || choice == "Y"   ||
-    choice == "yes" || choice == "YES" || choice == "Yes";
+  return is_yes(choice);
 }
-
+//--------------------------------------------------------
+//--------------------------------------------------------
+//--------------------------------------------------------
 int main(int argc, char** argv)
 {
-  std::string user_choice;
+  std::string input;
   std::string filename;
   std::string buffer;
 
-  std::cout << "Append to last log file?";
-  std::cin >> user_choice;
+  //------ Configure
+  std::cout << "Append to last log file? ";
+  std::cin >> input;
 
-  bool append_mode = (user_choice == "y"   || user_choice == "Y" || user_choice == "yes" ||
-                      user_choice == "Yes" || user_choice == "YES");
-
-  if (append_mode)
+  if (is_yes(input))
   {
     filename = get_latest_log_file();
     if (ask_if_new())
-      buffer += '\n' + FAREWELL_TITLE + '\n' + '\n' + WELCOME_TITLE;
+      buffer += '\n' + end_msg + '\n' + '\n' + start_msg;
   }
   else
   {
     filename = "chat.log";
-
     if (fs::exists(filename))
     {
       rotate_log_file(filename);
-      buffer = WELCOME_TITLE + '\n' + '\n';
+      buffer = start_msg + '\n' + '\n';
     }
   }
+
+  buffer += format_time("\n%Y-%m-%d %H:%M:%S\n\n");
 
   std::cout << buffer << std::endl;
 
   std::ofstream logfile(filename, std::ios_base::app);
-  std::string   input;
   for (;;)
   {
     std::getline(std::cin, input);
@@ -134,13 +148,14 @@ int main(int argc, char** argv)
 
     logfile << buffer;
 
+    std::cout << "wrote to " << filename << ": " << buffer << std::endl;
+
     buffer.clear();
   }
 
-  std::cout  << '\n' + FAREWELL_TITLE << std::endl;
+  std::cout  << '\n' + end_msg << std::endl;
 
   logfile.close();
 
   return 0;
 }
-
