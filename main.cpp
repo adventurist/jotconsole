@@ -5,6 +5,9 @@
 #include <algorithm>
 #include <filesystem>
 #include <ctime>
+#include <iomanip>
+#include <dirent.h>
+#include <unistd.h>
 
 //--------------------------------------------------------
 //--------------------------------------------------------
@@ -147,8 +150,6 @@ int main(int argc, char** argv)
     buffer += input + "\n";
 
     logfile << buffer;
-
-    std::cout << "wrote to " << filename << ": " << buffer << std::endl;
 
     buffer.clear();
   }
