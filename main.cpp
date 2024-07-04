@@ -136,7 +136,7 @@ int main(int argc, char** argv)
     }
   }
 
-  buffer += format_time("\n%Y-%m-%d %H:%M:%S\n\n");
+  buffer += format_time("\n%Y-%m-%d %H:%M:%S\n");
 
   std::cout << buffer << std::endl;
 
@@ -150,6 +150,7 @@ int main(int argc, char** argv)
     buffer += input + "\n";
 
     logfile << buffer;
+    logfile.flush();
 
     buffer.clear();
   }
