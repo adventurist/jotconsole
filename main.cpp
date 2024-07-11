@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <filesystem>
 #include <ctime>
-#include <iomanip>
 #include <dirent.h>
 #include <unistd.h>
 
@@ -57,18 +56,6 @@ std::string get_latest_log_file()
   }
   return latest_file;
 }
-
-std::string get_timestamped_filename(const std::string& filename)
-{
-  std::time_t t = std::time(nullptr);
-  std::tm tm = *std::localtime(&t);
-
-  std::stringstream ss;
-  ss << filename << '-'
-      << std::put_time(&tm, "%Y%m%d-%H%M%S");
-
-  return ss.str();
-}
 //--------------------------------------------------------
 std::string format_time(const char* format, const std::time_t& t = std::time(nullptr))
 {
@@ -86,19 +73,18 @@ void rotate_log_file(const std::string& filename)
   std::string       simple_name = (pos == filename.npos) ? filename :
                                                            filename.substr(0, pos);
   const std::string format   = simple_name + "-%Y%m%d-%H%M%S.log";
-  const std::string new_name = format_time(simple_name.c_str(), mod_time);
+  const std::string new_name = format_time(format.c_str(), mod_time);
 
   fs::rename(filename, new_name);
-
   std::cout << "Renamed last log to: " << new_name << std::endl;
 }
 //--------------------------------------------------------
-static bool should_exit(const std::string& s)  { return s == "exit"; }
-//--------------------------------------------------------
-bool is_yes (const std::string& s)
+auto is_yes = [](auto s)
 {
-  return s == "y" || s == "Y" || s == "yes" || s == "YES" || s == "Yes";
-}
+  return s == "y"   || s == "Y" || s == "yes" || s == "YES" || s == "Yes";
+};
+//--------------------------------------------------------
+bool should_exit(const std::string& s)  { return s == "exit"; }
 //--------------------------------------------------------
 bool ask_if_new()
 {
@@ -107,6 +93,7 @@ bool ask_if_new()
   std::cin  >> choice;
   return is_yes(choice);
 }
+
 //--------------------------------------------------------
 //--------------------------------------------------------
 //--------------------------------------------------------
@@ -136,7 +123,7 @@ int main(int argc, char** argv)
     }
   }
 
-  buffer += format_time("\n%Y-%m-%d %H:%M:%S\n");
+  buffer += format_time("\n%Y-%m-%d %H:%M:%S\n\n");
 
   std::cout << buffer << std::endl;
 
@@ -150,12 +137,11 @@ int main(int argc, char** argv)
     buffer += input + "\n";
 
     logfile << buffer;
-    logfile.flush();
 
     buffer.clear();
   }
 
-  std::cout  << '\n' + end_msg << std::endl;
+  std::cout << '\n' + end_msg << std::endl;
 
   logfile.close();
 
