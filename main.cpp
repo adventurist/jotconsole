@@ -7,6 +7,7 @@
 #include <ctime>
 #include <dirent.h>
 #include <unistd.h>
+#include <cstdio>
 
 //--------------------------------------------------------
 //--------------------------------------------------------
@@ -65,6 +66,30 @@ std::string format_time(const char* format, const std::time_t& t = std::time(nul
   return ss.str();
 }
 //--------------------------------------------------------
+bool is_file_open_by_any_process(const std::string& filename)
+{
+  const std::string command = "lsof " + filename + " 2>/dev/null";
+  FILE* pipe = popen(command.c_str(), "r");
+  if (!pipe)
+  {
+    std::cerr << "Failed to run lsof command" << std::endl;
+    return false;
+  }
+
+  char buffer[128];
+  bool is_open = false;
+  while (fgets(buffer, sizeof(buffer), pipe))
+    if (strstr(buffer, filename.c_str()))
+    {
+      is_open = true;
+      break;
+    }
+
+  pclose(pipe);
+
+  return is_open;
+}
+//--------------------------------------------------------
 void rotate_log_file(const std::string& filename)
 {
   const auto        ftime       = fs::last_write_time(filename);
@@ -78,6 +103,7 @@ void rotate_log_file(const std::string& filename)
   fs::rename(filename, new_name);
   std::cout << "Renamed last log to: " << new_name << std::endl;
 }
+
 //--------------------------------------------------------
 auto is_yes = [](auto s)
 {
@@ -118,6 +144,12 @@ int main(int argc, char** argv)
     filename = "chat.log";
     if (fs::exists(filename))
     {
+      if (is_file_open_by_any_process(filename))
+      {
+        filename = format_time("chat-%Y%m%d-%H%M%S.log");
+        std::cout << "Filename will be " << filename << std::endl;
+      }
+
       rotate_log_file(filename);
       buffer = start_msg + '\n' + '\n';
     }
