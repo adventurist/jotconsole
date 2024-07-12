@@ -39,7 +39,7 @@ std::string get_latest_log_file()
   namespace fs = std::filesystem;
 
   static const std::string directory   = ".";
-               std::string latest_file = "chat.log";
+               std::string latest_file = "jot.log";
                std::time_t latest_time = 0;
 
   for (const auto& entry : fs::directory_iterator(directory))
@@ -147,11 +147,11 @@ int main(int argc, char** argv)
   {
     std::cout << "Filename still not set. Using default" << std::endl;
 
-    filename = "chat.log";
+    filename = "jot.log";
     if (fs::exists(filename))
     {
       if (is_file_open_by_any_process(filename))
-        filename = format_time("chat-%Y%m%d-%H%M%S.log");
+        filename = format_time("jot-%Y%m%d-%H%M%S.log");
       else
         rotate_log_file(filename);
 
