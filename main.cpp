@@ -136,28 +136,32 @@ int main(int argc, char** argv)
   if (is_yes(input))
   {
     filename = get_latest_log_file();
-    if (ask_if_new())
+    if (is_file_open_by_any_process(filename))
+      filename.clear();
+    else
+    if(ask_if_new())
       buffer += '\n' + end_msg + '\n' + '\n' + start_msg;
   }
-  else
+
+  if (filename.empty())
   {
+    std::cout << "Filename still not set. Using default" << std::endl;
+
     filename = "chat.log";
     if (fs::exists(filename))
     {
       if (is_file_open_by_any_process(filename))
-      {
         filename = format_time("chat-%Y%m%d-%H%M%S.log");
-        std::cout << "Filename will be " << filename << std::endl;
-      }
+      else
+        rotate_log_file(filename);
 
-      rotate_log_file(filename);
       buffer = start_msg + '\n' + '\n';
     }
   }
 
   buffer += format_time("\n%Y-%m-%d %H:%M:%S\n\n");
 
-  std::cout << buffer << std::endl;
+  std::cout << "Filename set to " << filename << "\n\n" << buffer << std::endl;
 
   std::ofstream logfile(filename, std::ios_base::app);
   for (;;)
