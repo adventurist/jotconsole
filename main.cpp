@@ -8,6 +8,8 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <cstdio>
+#include <csignal>
+#include <functional>
 
 //--------------------------------------------------------
 //--------------------------------------------------------
@@ -105,9 +107,9 @@ void rotate_log_file(const std::string& filename)
 }
 
 //--------------------------------------------------------
-auto is_yes = [](auto s)
+auto is_yes = [](auto s) // empty string counts as yes
 {
-  return s == "y"   || s == "Y" || s == "yes" || s == "YES" || s == "Yes";
+  return s.empty() || s == "y"   || s == "Y" || s == "yes" || s == "YES" || s == "Yes";
 };
 //--------------------------------------------------------
 bool should_exit(const std::string& s)  { return s == "exit"; }
@@ -115,11 +117,18 @@ bool should_exit(const std::string& s)  { return s == "exit"; }
 bool ask_if_new()
 {
   std::string choice;
-  std::cout << "Is this new material? " << std::endl;
-  std::cin  >> choice;
+  std::cout << "Is this new material? [Y] " << std::endl;
+  std::getline(std::cin, choice);
+
   return is_yes(choice);
 }
 
+using sigfunc_t = std::function<void(int)>;
+sigfunc_t console_fn;
+void         console_wrapper_fn(int signum)
+{
+  console_fn(signum);
+}
 //--------------------------------------------------------
 //--------------------------------------------------------
 //--------------------------------------------------------
@@ -129,9 +138,23 @@ int main(int argc, char** argv)
   std::string filename;
   std::string buffer;
 
+  console_fn = [&buffer, &input](auto sig)
+  {
+
+    std::cout << "\nEntering console:\n    Start new? [Y] ";
+    std::getline(std::cin, input);
+    if (is_yes(input))
+    {
+      std::cout << '\n' + end_msg + '\n' + '\n' + start_msg;
+      buffer += '\n' + end_msg + '\n' + '\n' + start_msg;
+    }
+  };
+
+  signal(SIGQUIT, console_wrapper_fn);
+
   //------ Configure
-  std::cout << "Append to last log file? ";
-  std::cin >> input;
+  std::cout << "Append to last log file? [Y] ";
+  std::getline(std::cin, input);
 
   if (is_yes(input))
   {
