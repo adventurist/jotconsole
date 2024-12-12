@@ -145,8 +145,10 @@ int main(int argc, char** argv)
     std::getline(std::cin, input);
     if (is_yes(input))
     {
-      std::cout << '\n' + end_msg + '\n' + '\n' + start_msg;
-      buffer += '\n' + end_msg + '\n' + '\n' + start_msg;
+      const auto datetime = format_time("\n%Y-%m-%d %H:%M:%S\n\n");
+      std::cout << '\n' + end_msg + '\n' + '\n' + start_msg + '\n' + datetime;
+      buffer += '\n' + end_msg + '\n' + '\n' + start_msg + '\n' + datetime;
+      buffer += format_time("\n%Y-%m-%d %H:%M:%S\n\n");
     }
   };
 
